@@ -13,6 +13,56 @@ function Cell(bomb, id) {
   this.iterator = 0;
 }
 
+Cell.prototype.neighborhood = function() {
+  var neighbors = [];
+    var cell = this.cellId;
+    var nw = cell - (base + 1);
+    var n = cell - base;
+    var ne = cell - (base - 1);
+    var w = cell - 1;
+    var e = cell + 1;
+    var sw = cell + (base - 1);
+    var s = cell + base;
+    var se = cell + (base + 1);
+    neighbors.push(nw);
+    neighbors.push(n);
+    neighbors.push(ne);
+    neighbors.push(w);
+    neighbors.push(e);
+    neighbors.push(sw);
+    neighbors.push(s);
+    neighbors.push(se);
+    if (cell < base) {
+      neighbors.splice(neighbors.indexOf(nw), 1);
+      neighbors.splice(neighbors.indexOf(n), 1);
+      neighbors.splice(neighbors.indexOf(ne), 1);
+    }
+    if (cell >= base * (base - 1)) {
+      neighbors.splice(neighbors.indexOf(sw), 1);
+      neighbors.splice(neighbors.indexOf(s), 1);
+      neighbors.splice(neighbors.indexOf(se), 1);
+    }
+    if (cell % base === base - 1) {
+      if (neighbors.indexOf(ne) !== -1) {
+        neighbors.splice(neighbors.indexOf(ne), 1);
+      }
+      neighbors.splice(neighbors.indexOf(e), 1);
+      if (neighbors.indexOf(se) !== -1) {
+        neighbors.splice(neighbors.indexOf(se), 1);
+      }
+    }
+    if (cell % base === 0) {
+      if (neighbors.indexOf(nw) !== -1) {
+        neighbors.splice(neighbors.indexOf(nw), 1);
+      }
+      neighbors.splice(neighbors.indexOf(w), 1);
+      if (neighbors.indexOf(sw) !== -1) {
+        neighbors.splice(neighbors.indexOf(sw), 1);
+      }
+    }
+    return neighbors;
+  }
+
 //Object constructor for difficulty levels
 function Level(cells, bombs) {
   this.cellCount = cells;
@@ -43,6 +93,7 @@ function getRandomBombs() {
       randomNumbers.push(oneRandomBomb);
     }
   }
+  console.log(randomNumbers);
   return randomNumbers;
 }
 
@@ -59,58 +110,18 @@ var bombCells = function() {
   return randomBombs;
 }
 
-//Sets adjacency values
+//Finds cell ids of each of the cells neighboring a bomb
 var touch = function() {
   var bId = bombCells();
-  var allCells = [];
+  var bombNeighbors = [];
   for (l = 0; l < bId.length; l++) {
-    var z = bId[l];
-    var nw = z - (base + 1);
-    var n = z - base;
-    var ne = z - (base - 1);
-    var w = z - 1;
-    var e = z + 1;
-    var sw = z + (base - 1);
-    var s = z + base;
-    var se = z + (base + 1);
-    allCells.push(nw);
-    allCells.push(n);
-    allCells.push(ne);
-    allCells.push(w);
-    allCells.push(e);
-    allCells.push(sw);
-    allCells.push(s);
-    allCells.push(se);
-    if (z < base) {
-      allCells.splice(allCells.indexOf(nw), 1);
-      allCells.splice(allCells.indexOf(n), 1);
-      allCells.splice(allCells.indexOf(ne), 1);
-    }
-    if (z >= base * (base - 1)) {
-      allCells.splice(allCells.indexOf(sw), 1);
-      allCells.splice(allCells.indexOf(s), 1);
-      allCells.splice(allCells.indexOf(se), 1);
-    }
-    if (z % base === base - 1) {
-      if (allCells.indexOf(ne) !== -1) {
-        allCells.splice(allCells.indexOf(ne), 1);
-      }
-      allCells.splice(allCells.indexOf(e), 1);
-      if (allCells.indexOf(se) !== -1) {
-        allCells.splice(allCells.indexOf(se), 1);
-      }
-    }
-    if (z % base === 0) {
-      if (allCells.indexOf(nw) !== -1) {
-        allCells.splice(allCells.indexOf(nw), 1);
-      }
-      allCells.splice(allCells.indexOf(w), 1);
-      if (allCells.indexOf(sw) !== -1) {
-        allCells.splice(allCells.indexOf(sw), 1);
-      }
+    var oneBomb = bId[l];
+    var oneBombNeighbors = cellArray[oneBomb].neighborhood();
+    for (r = 0; r < oneBombNeighbors.length; r++) {
+      bombNeighbors.push(oneBombNeighbors[r]);
     }
   }
-  return allCells;
+  return bombNeighbors;
 }
 
 //adds 1 to adjacency value for each bomb a cell is touching
@@ -130,7 +141,6 @@ var surroundingCells = function() {
 
 //User Interface Logic
 $(document).ready(function() {
-
   $("#beginner").click(function(){
     createGame(beginner);
     $("#screen-overlay").hide();
@@ -197,206 +207,38 @@ $(document).ready(function() {
     //Not game over
     var stateOfGame = true;
 
-
     //Removes right-click context menu on game
     $(".minesweeper-game").contextmenu(function() {
       return false;
     });
 
     /////////////////////////////////////////////////////////////////////////////////////
-    var south = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i += base) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0)  {
-          if (cellArray[i].cellId >= base * (base-1)) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else {
-            $("#" + i).addClass("clicked-on");
+
+    var clickExpander = function(clickedOn) {
+      var clickedOnNeighborhoods = [];
+      clickedOnNeighborhoods.push(clickedOn);
+
+      for (r = 0; r < clickedOnNeighborhoods.length; r++) {
+        var cellClicked = cellArray[clickedOnNeighborhoods[r]];
+        if (cellClicked.adjValue === 0) {
+          var neighbor = cellClicked.neighborhood();
+          for (s = 0; s < neighbor.length; s++) {
+            if (clickedOnNeighborhoods.indexOf(neighbor[s]) === -1) {
+              clickedOnNeighborhoods.push(neighbor[s]);
+            }
           }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
         }
       }
-    }
 
-    var north = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i -= base) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if (cellArray[i].cellId < base) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else {
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
+      for (t = 0; t < clickedOnNeighborhoods.length; t++) {
+        var revealCell = cellArray[clickedOnNeighborhoods[t]];
+        $("#" + revealCell.cellId).addClass("clicked-on");
+        if (revealCell.adjValue > 0) {
+          $("#" + revealCell.cellId).text(revealCell.adjValue);
         }
       }
-    }
-
-    var east = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i++) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if (cellArray[i].cellId % base === base - 1 && cellArray[i].cellId < base * base) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else {
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var west = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i--) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if (cellArray[i].cellId % base === 0) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else {
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var northeast = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i -= (base-1)) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if ((cellArray[i].cellId % base === base - 1)||(cellArray[i].cellId < base)) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else{
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var northwest = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i -= (base+1)) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if ((cellArray[i].cellId % base === 0)||(cellArray[i].cellId < base)) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else{
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var southeast = function(thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i += (base+1)) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if ((cellArray[i].cellId % base === base - 1)||(cellArray[i].cellId >= base * (base-1))) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else{
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var southwest = function (thisPlaceholder) {
-      for (i = parseInt(thisPlaceholder); i < cellArray.length; i += (base-1)) {
-        if (cellArray[i].iterator === 0) {
-          cellArray[i].iterator += 1;
-          clickExpander(i);
-        }
-        if ($("#" + i).hasClass("flag")) {
-          break;
-        } else if (cellArray[i].adjValue === 0) {
-          if ((cellArray[i].cellId % base >= base * (base-1)) || (cellArray[i].cellId % base === 0)) {
-            $("#" + i).addClass("clicked-on");
-            break;
-          } else{
-            $("#" + i).addClass("clicked-on");
-          }
-        } else {
-          $("#" + i).addClass("clicked-on");
-          $("#" + i).text(cellArray[i].adjValue);
-          break;
-        }
-      }
-    }
-
-    var clickExpander = function(thisPlaceholder) {
-      south(thisPlaceholder);
-      north(thisPlaceholder);
-      east(thisPlaceholder);
-      west(thisPlaceholder);
-      northeast(thisPlaceholder);
-      northwest(thisPlaceholder);
-      southeast(thisPlaceholder);
-      southwest(thisPlaceholder);
+      console.log(clickedOnNeighborhoods);
+      return clickedOnNeighborhoods;
     }
 
     //click listener
@@ -406,7 +248,7 @@ $(document).ready(function() {
 
           //On left click
           case 1:
-          idValue = $(this).attr("id");
+          idValue = parseInt($(this).attr("id"));
           //If you left-click on a bomb, they all show up and game over
           if ($(this).hasClass("flag")){
             break;
@@ -425,7 +267,7 @@ $(document).ready(function() {
               //shows the adjacency value when a cell is clicked on
               $(this).text(cellArray[idValue].adjValue);
             } else {
-              clickExpander($(this).attr("id"));
+              clickExpander(idValue);
             }
           }
           if (cellArray.length - numberOfBombs === $(".clicked-on").length) {
@@ -451,6 +293,6 @@ $(document).ready(function() {
           }
         }
       }
-    })
+    });
   }
-})
+});
