@@ -17,20 +17,6 @@ _After selecting a difficulty level, the player clicks on squares. Squares that 
 5. _Double right-click takes flag away in cell; input: 2 right clicks; output: flag goes away_
 6. _If user clicks on bomb the game ends; input: bomb; output: game over_
 
-
-## Setup/Installation Requirements
-
-* _Clone the GitHub repository_
-* _Open it in a browser of your choice_
-
-## Known Bugs
-
-* _The recursive function is not called on cells that already contain an adjacency value of 1; therefore, cells that should be displayed are not always displayed._
-
-## Support and contact details
-
-_Contact Team Minesweeper at 123-456-7890_
-
 ## Technologies Used
 
 * _HTML_
